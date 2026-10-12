@@ -1,0 +1,13 @@
+pipeline {
+  agent any
+  environment { IMAGE = "heart-disease-api:${env.BUILD_NUMBER}" }
+  stages {
+    stage('Checkout')  { steps { checkout scm } }
+    stage('Install')   { steps { sh 'python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt' } }
+    stage('Train')     { steps { sh '. .venv/bin/activate && python -m src.train' } }
+    stage('Test')      { steps { sh '. .venv/bin/activate && pytest -q' } }
+    stage('Docker')    { steps { sh 'docker build -t $IMAGE .' } }
+    stage('Deploy')    { steps { sh 'docker compose up -d --build api' } }
+  }
+  post { always { archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true } }
+}
